@@ -1,0 +1,15 @@
+.env
+.env.bak
+.env.kcc
+.env.*
+node_modules
+cache
+artifacts
+flattened-*
+scripts
+test
+hardhat.config.js
+**/flat-*
+
+*.bat
+*.log
