@@ -97,7 +97,7 @@ contract StrategyLP2 is Ownable, Pausable {
     event SetMinToLiquify(uint256 n);
     event SetCheckByOrigin(bool b);
 
-   modifier onlyNonContract(){
+    modifier onlyNonContract(){
         if (CHECK_BY_ORIGIN){
             // require(!Address.isContract(tx.origin), "!contract");
             require(tx.origin == msg.sender, "!contract!");

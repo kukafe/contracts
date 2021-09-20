@@ -63,6 +63,15 @@ contract StrategyLP3 is Ownable, Pausable {
         require(vault == _msgSender() , "Ownable: caller is not the vault");
         _;
     }
+    modifier onlyNonContract(){
+        if (CHECK_BY_ORIGIN){
+            // require(!Address.isContract(tx.origin), "!contract");
+            require(tx.origin == msg.sender, "!contract!");
+        }else{
+            require(!Address.isContract(msg.sender), "!contract");
+        }
+        _;
+    }
     // these cant be changed after constructor
     address public lpPair;
 
@@ -257,12 +266,7 @@ contract StrategyLP3 is Ownable, Pausable {
      * 4. Adds more liquidity to the pool.
      * 5. It deposits the new LP tokens.
      */
-    function harvest() external {
-        if (CHECK_BY_ORIGIN){
-            require(!Address.isContract(tx.origin), "!contract");
-        }else{
-            require(!Address.isContract(msg.sender), "!contract");
-        }
+    function harvest() external onlyNonContract{
         _harvest();
         
     }

@@ -51,15 +51,18 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
      * {lpPair} - Token that the strategy maximizes. The same token that users deposit in the vault.
      * {lpToken0, lpToken1} - Tokens that the strategy maximizes. IPanwexPair tokens
      */
-    modifier onlyOwnerOrUser() {
-        require(owner() == _msgSender() || user == _msgSender() , "Ownable: caller is not the owner/user");
-        _;
-    }
+    // modifier onlyOwnerOrUser() {
+    //     require(owner() == _msgSender() || user == _msgSender() , "Ownable: caller is not the owner/user");
+    //     _;
+    // }
     modifier onlyUser() {
         require(user == _msgSender() , "Ownable: caller is not the user");
         _;
     }
-    
+    modifier onlyOperatorOrUser(){
+        require(_msgSender() == operator || _msgSender() == user, "only operator or user");
+        _;
+    }
     // modifier onlyVault() {
     //     require(vault == _msgSender() , "Ownable: caller is not the vault");
     //     _;
@@ -90,6 +93,7 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
 
     bool public CHECK_BY_ORIGIN = true; 
     uint256 public constant FEE_CAP = 30 * 100; // max fee possible 30%
+    address public operator;
 
     event SetBuybackStrat(address a);
     event SetStakingMode(bool b);
@@ -98,6 +102,7 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
     event SetMinToLiquify(uint256 n);
     event SetExitMode(bool b);
     event SetCheckByOrigin(bool b);
+    
     
     modifier onlyNonContract(){
         if (CHECK_BY_ORIGIN){
@@ -411,7 +416,7 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
     /**
      * @dev Pauses deposits. Withdraws all funds from the MasterChef, leaving rewards behind
      */
-    function panic() public onlyOwnerOrUser {
+    function panic() public onlyOperatorOrUser {
         pause();
         withdrawFromFarm(balanceOfPool());
         if (balanceOfPool() == 0){
@@ -429,7 +434,7 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
     /**
      * @dev Pauses the strat.
      */
-    function pause() public onlyOwnerOrUser {
+    function pause() public onlyOperatorOrUser {
         _pause();
         IERC20(lpPair).safeApprove(masterchef, 0);
         IERC20(rewardToken).safeApprove(router, 0);
@@ -442,7 +447,7 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
     /**
      * @dev Unpauses the strat.
      */
-    function unpause() external onlyOwnerOrUser {
+    function unpause() external onlyOperatorOrUser {
         _unpause();
 
         IERC20(lpPair).safeApprove(masterchef, 0);

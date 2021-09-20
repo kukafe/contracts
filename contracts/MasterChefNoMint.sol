@@ -126,10 +126,10 @@ contract MasterChefNoMint is Ownable, ReentrancyGuard {
         poolInfo[_pid].allocPoint = _allocPoint;
         poolInfo[_pid].depositFeeBP = _depositFeeBP;
     }
-    function max(uint256 a, uint256 b) internal view returns (uint256){
+    function max(uint256 a, uint256 b) internal pure returns (uint256){
         return (a>b) ? a : b;
     }
-    function min(uint256 a, uint256 b) internal view returns (uint256){
+    function min(uint256 a, uint256 b) internal pure returns (uint256){
         return (a>b) ? b : a;
     }
 

@@ -77,6 +77,7 @@ contract MasterChefNoMintLock is Ownable, ReentrancyGuard {
     event UpdateEmissionRate(address indexed user, uint256 goosePerBlock);
     
     event Lock(address indexed user, uint256 timestamp, uint256 amt, uint256 batchIndex);
+    event DepositFor(address indexed sender, address indexed receiver, uint256 pid, uint256 amount);
     event Redeem(address indexed user, uint256 timestamp, uint256 amt, uint256 batchIndex);
 
     constructor(
@@ -258,6 +259,56 @@ contract MasterChefNoMintLock is Ownable, ReentrancyGuard {
         }
         user.rewardDebt = user.amount.mul(pool.accKafePerShare).div(1e12);
         emit Deposit(msg.sender, _pid, actualDepAmt);
+        emit Lock(msg.sender, block.timestamp, actualDepAmt, user.batches.length - 1);
+    }
+    // used for airdropped shares!
+    function depositFor(uint256 _pid, uint256 _amount, address _user) public onlyOwner nonReentrant {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][_user];
+        require(_amount >= pool.minPerBatch, "min per batch");
+
+        updatePool(_pid);
+        if (user.amount > 0) {
+            uint256 pending = user.amount.mul(pool.accKafePerShare).div(1e12).sub(user.rewardDebt);
+            if (pending > 0) {
+                safeKafeTransfer(_user, pending);
+            }
+        }
+        // prevent double hop for deposit fee
+        uint256 intendedDepAmt = _amount;
+        uint256 actualDepAmt = _amount;
+        
+        if (intendedDepAmt > 0) {
+
+            if (pool.depositFeeBP > 0) {
+                uint256 feeAmount = intendedDepAmt.mul(pool.depositFeeBP).div(10000); // 100 = 1%
+
+                if (feeFactor[msg.sender][_pid]>0){
+                    feeAmount = feeAmount.mul(feeFactor[msg.sender][_pid]).div(10000);
+                }
+
+                pool.lpToken.safeTransferFrom(address(msg.sender), feeAddress, feeAmount);
+                intendedDepAmt = intendedDepAmt.sub(feeAmount);
+            }
+
+            uint256 balBefore = pool.lpToken.balanceOf(address(this));
+            pool.lpToken.safeTransferFrom(address(msg.sender), address(this), intendedDepAmt);
+            actualDepAmt = pool.lpToken.balanceOf(address(this)).sub(balBefore);
+
+            user.amount = user.amount.add(actualDepAmt);
+            pool.depositedAmt = pool.depositedAmt.add(actualDepAmt);
+            user.batches.push(LockBatch({
+                owner: _user,
+                startTimestamp: block.timestamp,
+                amount: actualDepAmt,
+                redeemed: false
+            }));
+    
+
+        }
+        user.rewardDebt = user.amount.mul(pool.accKafePerShare).div(1e12);
+        emit DepositFor(msg.sender, _user, _pid, actualDepAmt);
+        emit Deposit(_user, _pid, actualDepAmt);
         emit Lock(msg.sender, block.timestamp, actualDepAmt, user.batches.length - 1);
     }
 

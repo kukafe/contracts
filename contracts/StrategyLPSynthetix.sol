@@ -20,7 +20,10 @@ interface IMasterChefWStakingReferral {
 
     function balanceOf(address user) external view returns (uint256);
 }
+interface IVault {
+    function updatePricePerShare() external;
 
+}
 
 /**
  * @dev Implementation of a strategy to get yields from farming LP Pools in PanwexSwap.
@@ -55,6 +58,15 @@ contract StrategyLPSynthetix is Ownable, Pausable {
         require(vault == _msgSender() , "Ownable: caller is not the vault");
         _;
     }
+    modifier onlyNonContract(){
+        if (CHECK_BY_ORIGIN){
+            // require(!Address.isContract(tx.origin), "!contract");
+            require(tx.origin == msg.sender, "!contract!");
+        }else{
+            require(!Address.isContract(msg.sender), "!contract");
+        }
+        _;
+    }
     // these cant be changed after constructor
     address public lpPair;
 
@@ -73,19 +85,35 @@ contract StrategyLPSynthetix is Ownable, Pausable {
     address public swapPathRegistry;
     uint256 public MIN_TO_LIQUIFY = 100;
 
+    uint256 public constant FEE_CAP = 30 * 100; // max fee possible 30%
+    bool public CHECK_BY_ORIGIN = true; 
+
+
     event Deposit(address indexed account, uint256 amt);
     event Withdraw(address indexed account, uint256 amt);
     event Compound(address indexed caller, uint256 lpAdded);
     event CompoundLoss(address indexed caller, uint256 change); // shouldnt happen since im comparing balanceOfPool
     
+    event SetBuybackStrat(address a);
+    event SetSwapPathRegistry(address a);
+    event SetMinToLiquify(uint256 n);
+    event SetCheckByOrigin(bool b);
+
+    function setCheckByOrigin(bool b) external onlyOwner {
+        CHECK_BY_ORIGIN = b;
+        emit SetCheckByOrigin(b);
+    }
     function setBuybackStrat(address _address) external onlyOwner{
         buybackstrat = _address;
     }
     function setSwapPathRegistry(address _a) external onlyOwner{
-    swapPathRegistry = _a;
+        require(_a != address(0), "no zero address!");
+        swapPathRegistry = _a;
+        emit SetSwapPathRegistry(_a);
     }
     function setMinToLiquify(uint256 n) external onlyOwner{
         MIN_TO_LIQUIFY = n;
+        emit SetMinToLiquify(n);
     }
 
     function depositToFarm(uint256 amt) internal{
@@ -208,8 +236,7 @@ contract StrategyLPSynthetix is Ownable, Pausable {
      * 4. Adds more liquidity to the pool.
      * 5. It deposits the new LP tokens.
      */
-    function harvest() external {
-        require(!Address.isContract(msg.sender), "!contract");
+    function harvest() external onlyNonContract{
         _harvest();
     }
 
@@ -237,11 +264,17 @@ contract StrategyLPSynthetix is Ownable, Pausable {
         } else if (postBal < preBal){
             emit CompoundLoss(msg.sender, preBal.sub(postBal));
         }
+        try IVault(vault).updatePricePerShare() {
+        } catch(bytes memory reason){}
 
     }
 
     function getBPSFee() public view returns (uint) {
-        return Buybackstrat(buybackstrat).performanceFeeBps();
+        uint256 fee = Buybackstrat(buybackstrat).performanceFeeBps();
+        if (fee > FEE_CAP) {
+            fee = FEE_CAP;
+        }
+        return fee;
     }
 
     function chargeFees() internal {
