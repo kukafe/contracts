@@ -1,10 +1,11 @@
 .env
 .env.bak
+.env.movr
 .env.kcc
 .env.*
 node_modules
 cache
-artifacts
+artifactsgit 
 flattened-*
 scripts
 test
@@ -13,3 +14,4 @@ hardhat.config.js
 
 *.bat
 *.log
+artifacts
