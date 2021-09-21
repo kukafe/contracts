@@ -61,7 +61,7 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
     }
     modifier onlyOperatorOrUser(){
         require(_msgSender() == operator || _msgSender() == user, "only operator or user");
-        _;
+        _;  
     }
     // modifier onlyVault() {
     //     require(vault == _msgSender() , "Ownable: caller is not the vault");
@@ -96,6 +96,7 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
     address public operator;
 
     event SetBuybackStrat(address a);
+    event SetOperator(address a);
     event SetStakingMode(bool b);
     event SetReferralMode(bool b);
     event SetSwapPathRegistry(address a);
@@ -123,6 +124,10 @@ contract StrategyLPPersonalVault is Ownable, Pausable {
     function setBuybackStrat(address _address) external onlyOwner{
         buybackstrat = _address;
         emit SetBuybackStrat(_address);
+    }
+    function setOperator(address _a) external onlyOwner{
+        operator = _a;
+        emit SetOperator(_a);
     }
     function setStakingMode(bool _b) external onlyOwner{
         stakingMode = _b;

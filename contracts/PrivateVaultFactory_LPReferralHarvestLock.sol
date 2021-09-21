@@ -42,8 +42,9 @@ contract PrivateVaultFactory_LPReferralHarvestLock is Ownable {
         );
         temp.setStakingMode(_stakingMode);
         temp.setReferralMode(_referralMode);
-
+        temp.setOperator(owner());
         temp.transferOwnership(owner());
+        
         IVaultRegistry(vaultRegistry).registerVault(_user, address(temp), VAULT_TYPE);
         emit VaultCreated(_user, address(temp), _lpPair, VAULT_TYPE);
         
