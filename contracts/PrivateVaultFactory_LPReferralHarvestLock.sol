@@ -9,17 +9,24 @@ contract PrivateVaultFactory_LPReferralHarvestLock is Ownable {
 
     // VaultTemplate[] public vaultTemplates;
     address public vaultRegistry;
-    string public constant VAULT_TYPE="StrategyLPPersonalVault2b";
+    address public dev;
+    string public constant VAULT_TYPE="StrategyLPPersonalVault3";
 
     event SetVaultRegistry(address _a);
     event VaultCreated(address user, address vault, address lpPair, string vaultType);
+    event SetDev(address _a);
 
     constructor() public {
+        dev = _msgSender();
     }
 
     function setVaultRegistry(address _r) external onlyOwner {
         vaultRegistry = _r;
         emit SetVaultRegistry(_r);
+    }
+    function setDev(address _a) external onlyOwner {
+        dev = _a;
+        emit SetDev(_a);
     }
 
     function createVault(address _lpPair, 
@@ -42,9 +49,9 @@ contract PrivateVaultFactory_LPReferralHarvestLock is Ownable {
         );
         temp.setStakingMode(_stakingMode);
         temp.setReferralMode(_referralMode);
-        temp.setOperator(owner());
+        temp.setOperator(dev);
         temp.transferOwnership(owner());
-        
+
         IVaultRegistry(vaultRegistry).registerVault(_user, address(temp), VAULT_TYPE);
         emit VaultCreated(_user, address(temp), _lpPair, VAULT_TYPE);
         
